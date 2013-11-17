@@ -1,0 +1,6 @@
+*.o
+*.mod
+*~
+*.gch
+bin/
+.settings
