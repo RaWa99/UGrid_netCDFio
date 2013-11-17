@@ -1,0 +1,6 @@
+#!/bin/sh
+# build netcdfiodriver - compile and link
+gfortran -c -g -O2 -Wall -fcheck=bounds -fbacktrace -I/usr/include/netcdff ../src/UGrid_io_netCDF.f90
+gfortran -c -g -O2 -Wall -fcheck=bounds -fbacktrace  ../src/UGrid_netCDF_driver.f90
+gfortran -g -O2 -fcheck=bounds -fbacktrace *.o -lnetcdff -lnetcdf -o ../bin/driver_dbg
+rm *.o

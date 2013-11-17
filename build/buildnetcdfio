@@ -1,0 +1,6 @@
+#!/bin/sh
+# build netcdfiodriver - compile and link
+gfortran -c -g -O2 -I/usr/include/netcdff ../src/UGrid_io_netCDF.f90
+gfortran -c -g -O2  ../src/UGrid_netCDF_driver.f90
+gfortran -g -O2 *.o -lnetcdff -lnetcdf -o ../bin/driver
+rm *.o
