@@ -31,6 +31,7 @@ integer, allocatable ::  nen(:,:),ncode(:),ecode(:)
 real*8, allocatable ::  x(:),y(:),depth(:)
 character(len=256) fname
 character(len=80) outresfile
+logical err
 
 ! *** first read binary file
 
@@ -48,7 +49,11 @@ character(len=80) outresfile
 ! *** read indices
     read(22,*) np,ne,ncn,iXYcoord,iZcoord
 
-    call Create_Grid_netCDF (np,ne,ncn,iXYcoord,iZcoord,outresfile,fname)
+    call Create_Grid_netCDF (np,ne,ncn,iXYcoord,iZcoord,outresfile,fname,err)
+    if(err) then
+      write(*,*) ' Error encountered, aborting...'
+      stop
+    endif
 
 ! *** allocate arrays
     ALLOCATE (x(np),y(np),depth(np),ncode(np),ecode(ne),nen(ncn,ne), STAT = status ) 
@@ -76,12 +81,25 @@ character(len=80) outresfile
     endif
     close(22)
    
-    call Write_Grid_netCDF (np,ne,ncn,x,y,depth,ncode,ecode,nen)
+    call Write_Grid_netCDF (np,ne,ncn,x,y,depth,ncode,ecode,nen,err)
+    if(err) then
+      write(*,*) ' Error encountered, aborting...'
+      stop
+    endif
     
     write(*,*) ' Reading file'
-    call Read_GridSize_netCDF ( outresfile,np,ne,ncn )
+    call Read_GridSize_netCDF ( outresfile,np,ne,ncn,err )
+    if(err) then
+      write(*,*) ' Error encountered, aborting...'
+      stop
+    endif
     write(*,*) ' np,ne,ncn=',np,ne,ncn
-    call Read_Grid_netCDF ( np,ne,ncn,x,y,depth,ncode,ecode,nen,iXYcoord,iZcoord )
+
+    call Read_Grid_netCDF ( np,ne,ncn,x,y,depth,ncode,ecode,nen,iXYcoord,iZcoord,err )
+    if(err) then
+      write(*,*) ' Error encountered, aborting...'
+      stop
+    endif
     write(*,*) ' xycoordinate=',iXYcoord
     write(*,*) ' zcoordinate=',iZcoord
 

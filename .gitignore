@@ -2,5 +2,5 @@
 *.mod
 *~
 *.gch
-bin/
+bin/test*
 .settings

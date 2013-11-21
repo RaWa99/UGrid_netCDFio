@@ -47,7 +47,7 @@
   CONTAINS
 !******************************************************************************
 
-    subroutine Create_Grid_netCDF(np,ne,ncn,iXYcoord,iZcoord,outresfile,fname)
+    subroutine Create_Grid_netCDF(np,ne,ncn,iXYcoord,iZcoord,outresfile,fname,err)
 
 !    Create netCDF file to contain output.
 
@@ -61,6 +61,7 @@
 ! Local variables
     integer status,ivar
     character(len=80)  ::  title
+    logical err
 
 ! Local variables for creation time
     CHARACTER*30 datestr, tmpstr
@@ -70,51 +71,100 @@
 
 ! *** Now create netCDF file
 
+    err = .false.
+    
 !  ncid is returned
     status=nf90_create(trim(OutResFile),nf90_clobber,ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_close(ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
-!write(*,'(''File created:'',a)')trim(OutResFile)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! *** Open file for writing
 
     status=nf90_open(trim(OutResFile),nf90_write,ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! *** Put in define mode
 
     status=nf90_redef(ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! Global Attributes
 
-title='grid_'//trim(fname)
+    title='grid_'//trim(fname)
     status=nf90_put_att(ncid,nf90_global,"title",'grid_description')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,"source","myProgram")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,'cf_role','mesh_topology')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,'long_name',"Topology data of 2D unstructured mesh")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,"Conventions","UGRID 0.9.0")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 2
     status=nf90_put_att(ncid,nf90_global,'topology_dimension',ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,'node_coordinates','node_x node_y')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,nf90_global,"face_node_connectivity",'element_node_connectivity')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 !    status=nf90_put_att(ncid,nf90_global,"comment","any comments")
 !    if(status /= nf90_noerr)call handle_nf_err(status)
@@ -162,98 +212,202 @@ title='grid_'//trim(fname)
     END IF
     
     status = nf90_put_att(ncid, NF90_GLOBAL, 'file_creation_time', tmpstr)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
  
 ! *** dimensions
 
     status=nf90_def_dim(ncid,"n_nodes",np,NodeDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_def_dim(ncid,"n_elements",ne,EleDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_def_dim(ncid,"n_element_nodes",ncn,NcnDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! *** Grid variables
 
     status=nf90_def_var(ncid,'node_x',nf90_double,NodeDimId,XVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_def_var(ncid,'node_y',nf90_double,NodeDimId,YVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     if(iXYcoord.eq.0) then  !spherical coordinates
 
 ! Latitude
 
       status=nf90_put_att(ncid,YVarId,"standard_name","latitude")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"long_name","latitude_in_spherical_coordinates")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"units","degrees_north")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,'positive','north')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"axis","y")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
 ! Longitude
 
       status=nf90_put_att(ncid,XVarId,"standard_name","longitude")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"long_name","longitude_in_spherical_coordinates")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"units","degrees_east")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,'positive','east')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"axis","x")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
     else  ! Cartesian coordinates
 
 ! X
 
       status=nf90_put_att(ncid,XVarId,"standard_name",'x_coordinate')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"long_name",'Cartesian_coordinate_x')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"units","m")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,'positive','right')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,XVarId,"axis","x")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
 ! Y
 
       status=nf90_put_att(ncid,YVarId,"standard_name",'y_coordinate')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"long_name",'Cartesian_coordinate_y')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"units",'m')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,'positive','90_degrees_counterclockwise_from_x')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,YVarId,"axis","y")
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
 
     endif
@@ -261,112 +415,220 @@ title='grid_'//trim(fname)
 ! Depth
 
     status=nf90_def_var(ncid,'node_z',nf90_double,NodeDimId,ZVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
     
     status=nf90_put_att(ncid,ZVarId,"standard_name",'depth')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,ZVarId,"units",'m')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,ZVarId,"axis",'z')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
       
     if(iZcoord.eq.0) then !depth, plus down
 
       status=nf90_put_att(ncid,ZVarId,"long_name",'depth_below_geoid')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,ZVarId,"positive",'down')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
     
     else !height, plus up
 
       status=nf90_put_att(ncid,ZVarId,"long_name",'height_above_geoid')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
 
       status=nf90_put_att(ncid,ZVarId,"positive",'up')
-      if(status /= nf90_noerr)call handle_nf_err(status)
+      if(status /= nf90_noerr) then
+        call handle_nf_err(status)
+        err = .true.
+        return
+      endif
       
     endif
 
 ! Node codes
 
     status=nf90_def_var(ncid,"node_code",nf90_int,NodeDimId,NcodeVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NcodeVarId,"standard_name","node_code")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NcodeVarId,"long_name","node_codes_for_boundary_conditions")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 0
     status=nf90_put_att(ncid,NcodeVarId,"no_bc",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 1
     status=nf90_put_att(ncid,NcodeVarId,"land_bc",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 2
     status=nf90_put_att(ncid,NcodeVarId,"open_bc",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 3
     status=nf90_put_att(ncid,NcodeVarId,"radiation_bc",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! Element list
     status=nf90_def_var(ncid,"element_node_connectivity",nf90_int,(/NcnDimId,EleDimId/),NenVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NenVarId,"standard_name","element_node_connectivity")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NenVarId,"long_name","list_of nodes_in_each_element_in_CCW_order")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NenVarId,'cf_role','face_node_connectivity')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,NenVarId,'units','nondimensional')
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! Element codes
 
     status=nf90_def_var(ncid,"element_code",nf90_int,EleDimId,EcodeVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,EcodeVarId,"standard_name","element_code")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_att(ncid,EcodeVarId,"long_name","element_codes_for_element_attributes")
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 0
     status=nf90_put_att(ncid,EcodeVarId,"inactive",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 1
     status=nf90_put_att(ncid,EcodeVarId,"active",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     ivar = 9
     status=nf90_put_att(ncid,EcodeVarId,"discharge_bc",ivar)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 !    Finish defs
 
     status=nf90_enddef(ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     end subroutine Create_Grid_netCDF
 
 !********************************************************************************
 
-    subroutine Write_Grid_netCDF ( np,ne,ncn,x,y,depth,ncode,ecode,nen )
+    subroutine Write_Grid_netCDF ( np,ne,ncn,x,y,depth,ncode,ecode,nen,err)
 
 !  Output data for a particular constituent
 
@@ -379,37 +641,68 @@ title='grid_'//trim(fname)
 
 ! *** Local variables
     integer status
+    logical err
 
 ! *** Put the grid data into the files, 
 
+    err = .false.
+
     status=nf90_put_var(ncid,XVarId,x)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_var(ncid,YVarId,y)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_var(ncid,ZVarId,depth)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_var(ncid,NcodeVarId,ncode)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_var(ncid,nenVarId,nen)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_put_var(ncid,EcodeVarId,ecode)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 ! *** Close file
 
     status=nf90_close(ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     end subroutine Write_Grid_netCDF
 
 !********************************************************************************
 
-    subroutine Read_GridSize_netCDF ( fname,np,ne,ncn )
+    subroutine Read_GridSize_netCDF ( fname,np,ne,ncn,err )
 
 !   Retrieve the dimensions from PreMod netCDF file
 
@@ -420,6 +713,7 @@ title='grid_'//trim(fname)
     integer,intent(out)                 :: ne
     integer,intent(out)                 :: np
     integer,intent(out)                 :: ncn
+    logical, intent(out)                :: err
 
 ! *** local variables
     integer         :: status
@@ -427,34 +721,64 @@ title='grid_'//trim(fname)
 
 !   Open the netCDF file
 
+    err = .false.
+
     status=nf90_open(trim(fname),nf90_nowrite,ncid)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
 !   Retrieve dimension lengths
 
     status=nf90_inq_dimid(ncid,'n_nodes',NodeDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inquire_dimension(ncid,NodeDimId,name,np)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inq_dimid(ncid,'n_elements',EleDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inquire_dimension(ncid,EleDimId,name,ne)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inq_dimid(ncid,'n_element_nodes',NcnDimId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inquire_dimension(ncid,NcnDimId,name,ncn)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     end subroutine Read_GridSize_netCDF
 
 !********************************************************************************
 
-    subroutine Read_Grid_netCDF ( np,ne,ncn,x,y,depth,ncode,ecode,nen, ixy, iz )
+    subroutine Read_Grid_netCDF(np,ne,ncn,x,y,depth,ncode,ecode,nen,ixy,iz,err )
 
 !   Get the grid stuff from the already open netCDF file
 
@@ -469,28 +793,51 @@ title='grid_'//trim(fname)
     integer,intent(out)     :: nen(ncn,ne)
     integer,intent(out)     :: ixy
     integer,intent(out)     :: iz
-    real*8,intent(out)        :: x(np)
-    real*8,intent(out)        :: y(np)
-    real*8,intent(out)        :: depth(np)
+    real*8,intent(out)      :: x(np)
+    real*8,intent(out)      :: y(np)
+    real*8,intent(out)      :: depth(np)
+    logical, intent(out)    :: err
 
 ! Local variables
     integer         :: status
     character(len=80) value
 
+    err = .false.
+
     status=nf90_inq_varid(ncid,'element_node_connectivity',nenVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,nenVarId,nen)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inq_varid(ncid,'node_x',XVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,XVarId,x)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status= nf90_get_att(ncid,XVarId,'standard_name',value)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     if(value(1:4).eq.'long') then
       ixy = 0
@@ -499,19 +846,39 @@ title='grid_'//trim(fname)
     endif
 
     status=nf90_inq_varid(ncid,'node_y',YVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,YVarId,y)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inq_varid(ncid,'node_z',ZVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,ZVarId,depth)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status= nf90_get_att(ncid,ZVarId,'positive',value)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     if(value(1:2).eq.'up') then
       iz = 1
@@ -520,16 +887,32 @@ title='grid_'//trim(fname)
     endif
 
     status=nf90_inq_varid(ncid,'node_code',NcodeVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,NcodeVarId,ncode)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_inq_varid(ncid,'element_code',EcodeVarId)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     status=nf90_get_var(ncid,EcodeVarId,ecode)
-    if(status /= nf90_noerr)call handle_nf_err(status)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
 
     end subroutine Read_Grid_netCDF
 
@@ -546,7 +929,7 @@ title='grid_'//trim(fname)
 
     if(status /= nf90_noerr)then
       write(*,*)'netCDF status error: ',trim(nf90_strerror(status))
-      stop 'Execution Stopped'
+!      stop 'Execution Stopped'
     endif
 
     end subroutine handle_nf_err
