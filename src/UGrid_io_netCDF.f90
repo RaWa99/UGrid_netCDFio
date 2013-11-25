@@ -28,6 +28,9 @@
     integer     ::  NodeDimId    ! Id of the node dimension
     integer     ::  EleDimId     ! Id of the element dimension
     integer     ::  NcnDimId     ! Id of the element nodes dimension
+    integer     ::  BNodeDimId   ! Id of the boundary node dimension
+    integer     ::  BndDimId     ! Id of the boundary dimension
+    integer     ::  BndIndxDimId     ! Id of the boundary index dimension
 
 ! *** Grid variables
     integer     ::  XVarId       ! Id of the X variable
@@ -39,15 +42,20 @@
     integer     ::  NcodeVarId   ! Id of the node code variable
     integer     ::  nenVarId     ! Id of the element variable
     integer     ::  EcodeVarId   ! Id of the element code variable
+    integer     ::  BNodeVarId   ! Id of the element code variable
+    integer     ::  BndIndexVarId! Id of the boundary index variable
+    integer     ::  BndIdVarId   ! Id of the boundary id (type) variable
 
     private
     public Create_Grid_netCDF,Write_Grid_netCDF,Read_GridSize_netCDF,Read_Grid_netCDF
+    public Write_Boundary_netCDF,Close_netCDF,Read_Boundary_netCDF
+    public Read_BoundarySize_netCDF
 
 !******************************************************************************
   CONTAINS
 !******************************************************************************
 
-    subroutine Create_Grid_netCDF(np,ne,ncn,iXYcoord,iZcoord,outresfile,fname,err)
+    subroutine Create_Grid_netCDF(np,ne,ncn,iXYcoord,iZcoord,outresfile,err)
 
 !    Create netCDF file to contain output.
 
@@ -56,7 +64,6 @@
 ! *** passed variables
     integer ne,np,ncn,iXYcoord,iZcoord
     character(len=80) :: outresfile
-    character(len=256) :: fname
 
 ! Local variables
     integer status,ivar
@@ -108,7 +115,7 @@
 
 ! Global Attributes
 
-    title='grid_'//trim(fname)
+    title=trim(outresfile)
     status=nf90_put_att(ncid,nf90_global,"title",'grid_description')
     if(status /= nf90_noerr) then
       call handle_nf_err(status)
@@ -517,7 +524,7 @@
     endif
 
     ivar = 2
-    status=nf90_put_att(ncid,NcodeVarId,"open_bc",ivar)
+    status=nf90_put_att(ncid,NcodeVarId,"island_bc",ivar)
     if(status /= nf90_noerr) then
       call handle_nf_err(status)
       err = .true.
@@ -525,7 +532,31 @@
     endif
 
     ivar = 3
+    status=nf90_put_att(ncid,NcodeVarId,"open_bc",ivar)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    ivar = 4
     status=nf90_put_att(ncid,NcodeVarId,"radiation_bc",ivar)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    ivar = 5
+    status=nf90_put_att(ncid,NcodeVarId,"discharge_bc",ivar)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    ivar = 6
+    status=nf90_put_att(ncid,NcodeVarId,"weir_bc",ivar)
     if(status /= nf90_noerr) then
       call handle_nf_err(status)
       err = .true.
@@ -689,16 +720,115 @@
       return
     endif
 
-! *** Close file
+    end subroutine Write_Grid_netCDF
 
-    status=nf90_close(ncid)
+!********************************************************************************
+
+    subroutine Write_Boundary_netCDF (nbp,nbnd,bnode_index,bnode_id,bnodes,err)
+
+!  Output data for a particular constituent
+
+    implicit none
+
+! *** passed variables
+    integer, intent(in) :: nbp,nbnd
+    integer, intent(in) :: bnode_index(nbnd+1),bnode_id(nbnd),bnodes(nbp)
+    logical, intent(out) :: err
+
+! *** Local variables
+    integer status
+
+! *** Put the grid data into the files
+    err = .false.
+    
+! *** Put in define mode
+
+    status=nf90_redef(ncid)
     if(status /= nf90_noerr) then
       call handle_nf_err(status)
       err = .true.
       return
     endif
 
-    end subroutine Write_Grid_netCDF
+! *** dimensions
+
+    status=nf90_def_dim(ncid,"n_bnodes",nbp,BNodeDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_def_dim(ncid,"n_boundaries",nbnd,BndDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_def_dim(ncid,"n_bound_index",nbnd+1,BndIndxDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+! *** Boundary variables
+
+    status=nf90_def_var(ncid,'boundary_nodes',nf90_int,BNodeDimId,BNodeVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_def_var(ncid,'boundary_node_index',nf90_int,BndIndxDimId,BndIndexVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_def_var(ncid,'boundary_node_id',nf90_int,BndDimId,BndIdVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+!    Finish defs
+
+    status=nf90_enddef(ncid)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_put_var(ncid,BNodeVarId,bnodes)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_put_var(ncid,BndIndexVarId,bnode_index)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_put_var(ncid,BndIdVarId,bnode_id)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+
+    end subroutine Write_Boundary_netCDF
+
 
 !********************************************************************************
 
@@ -915,6 +1045,159 @@
     endif
 
     end subroutine Read_Grid_netCDF
+
+!********************************************************************************
+
+    subroutine Read_BoundarySize_netCDF (nbp,nbnd,nbnd1,err)
+
+!  Output data for a particular constituent
+
+    implicit none
+
+! *** passed variables
+    integer, intent(out) :: nbp,nbnd,nbnd1
+    logical, intent(out) :: err
+
+! *** Local variables
+    integer status
+    character*80 :: name
+
+! *** Put the grid data into the files
+    err = .false.
+
+!   Retrieve dimension lengths
+
+    status=nf90_inq_dimid(ncid,"n_bnodes",BNodeDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inquire_dimension(ncid,BNodeDimId,name,nbp)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inq_dimid(ncid,"n_boundaries",BndDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inquire_dimension(ncid,BndDimId,name,nbnd)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inq_dimid(ncid,"n_bound_index",BndIndxDimId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inquire_dimension(ncid,BndIndxDimId,name,nbnd1)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    end subroutine Read_BoundarySize_netCDF
+
+!********************************************************************************
+
+    subroutine Read_Boundary_netCDF (nbp,nbnd,bnode_index,bnode_id,bnodes,err)
+
+!  Output data for a particular constituent
+
+    implicit none
+
+! *** passed variables
+    integer, intent(in) :: nbp,nbnd
+    integer, intent(out) :: bnode_index(nbnd+1),bnode_id(nbnd),bnodes(nbp)
+    logical, intent(out) :: err
+
+! *** Local variables
+    integer status
+
+! *** Put the grid data into the files
+    err = .false.
+
+    status=nf90_inq_varid(ncid,'boundary_nodes',BNodeVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_get_var(ncid,BNodeVarId,bnodes)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inq_varid(ncid,'boundary_node_index',BndIndexVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_get_var(ncid,BndIndexVarId,bnode_index)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_inq_varid(ncid,'boundary_node_id',BndIdVarId)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    status=nf90_get_var(ncid,BndIdVarId,bnode_id)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+
+    end subroutine Read_Boundary_netCDF
+
+!********************************************************************************
+    
+
+    subroutine Close_netCDF (err)
+
+    implicit none
+
+! *** passed variables
+    logical, intent(out)    :: err
+
+! Local variables
+    integer         :: status
+
+! *** Close file
+
+    status=nf90_close(ncid)
+    if(status /= nf90_noerr) then
+      call handle_nf_err(status)
+      err = .true.
+      return
+    endif
+
+    end subroutine Close_netCDF
 
 !********************************************************************************
 
